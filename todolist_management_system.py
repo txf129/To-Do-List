@@ -1,5 +1,3 @@
-# I make this to do list for learning python
-
 import os
 import emoji
 import json
