@@ -1,3 +1,5 @@
+# I make this to do list for learning python
+
 import os
 import emoji
 import json
@@ -48,7 +50,6 @@ class ToDoList():
          3.Low
          Choose a number."""))
         priority_input = input("> ").strip()
-        priority = None
         if priority_input == "1":
             try:
                 priority = "High"
@@ -64,8 +65,46 @@ class ToDoList():
                 priority = "Low"
             except ValueError:
                 print("Skipped priority.")
+        
+        print("Now determine your task's status.")
+        print("Choose from the menu:")
+        print("""\n
+              1. Just added
+              2. On Progress
+              3. Completed
+              4. Cancelled
+""")
+        status_input = (input("> ").strip())
 
-        task = {"title": title, "details": details, "priority": priority}
+        if status_input == "1":
+            try:
+                status = "Just added"
+            except ValueError:
+                print("Skipped status.")
+        if status_input == "2":
+            try:
+                status = "On Progress"
+            except ValueError:
+                print("Skipped status.")
+        if status_input == "3":
+            try:
+                status = "Completed"
+            except ValueError:
+                print("Skipped status.")
+        if status_input == "4":
+            try:
+                status = "Cancelled"
+            except ValueError:
+                print("Skipped status.")
+
+        task_start_date = str(datetime.date.today())
+        print("And finally, what about the Due Date for your task?")
+        print("Use this format please to write the date. (29 Apr, 2075)")
+        task_due_date_string = input("> ")
+        format = "%d %b, %Y"
+        task_due_date = datetime.datetime.strptime(task_due_date_string, format).date()
+
+        task = {"title": title, "details": details, "priority": priority, "status": status, "start_date": task_start_date, "due_date": task_due_date}
 
         self.tasks[title] = task
         self.save_tasks()
@@ -105,6 +144,9 @@ class ToDoList():
         print(f"""      Task's information: 
               Details: {task["details"]}
               Priority: {task["priority"]}
+              Status: "{task["status"]}"
+              Start date: "{task["start_date"]}"
+              Due date: "{task["due_date"]}"
               """)
         print("(While editing you can press Enter to keep the current value.)")
 
@@ -155,6 +197,54 @@ class ToDoList():
         if new_priority:
             task["priority"] = new_priority
 
+        print(f"New status: ")
+        print(emoji.emojize("""Status:
+              1. Just added
+              2. On Progress
+              3. Completed
+              4. Cancelled"""))
+        
+        new_status_input = (input("> ").strip())
+
+        if new_status_input == "1":
+            try:
+                new_status = "Just added"
+            except ValueError:
+                print("Skipped status.")
+        if new_status_input == "2":
+            try:
+                new_status = "On Progress"
+            except ValueError:
+                print("Skipped status.")
+        if new_status_input == "3":
+            try:
+                new_status = "Completed"
+            except ValueError:
+                print("Skipped status.")
+        if new_status_input == "4":
+            try:
+                new_status = "Cancelled"
+            except ValueError:
+                print("Skipped status.")
+        if new_status:
+            task["status"] = new_status
+
+        print("Setting a new 'Start Date': ")
+        print("Please keep in mind to use this format to write the date. (11 Aug, 1950)")
+        new_task_start_date_string = input("> ")
+        format = "%d %b, %Y"
+        new_task_start_date = datetime.datetime.strptime(new_task_start_date_string, format).date()
+        if new_task_start_date:
+            task["start_date"] = new_task_start_date
+        
+        print("Setting a new 'Due Date': ")
+        print("Please keep in mind to use this format to write the date. (23 Jul, 2001)")
+        new_task_due_date_string = input("> ")
+        format = "%d %b, %Y"
+        new_task_due_date = datetime.datetime.strptime(new_task_due_date_string, format).date()
+        if new_task_start_date:
+            task["due_date"] = new_task_due_date
+
         self.save_tasks()
         print(emoji.emojize(f"Task '{title}' updated successfuly. :check_mark_button:"))
 
@@ -191,6 +281,9 @@ class ToDoList():
             print(f"""  Task no.{i}: {task_name} 
               Details: "{task_data["details"]}"
               Priority: "{task_data["priority"]}"
+              Status: "{task_data["status"]}"
+              Start date: "{task_data["start_date"]}"
+              Due date: "{task_data["due_date"]}"
               """)
     
     def main(self):
@@ -200,6 +293,7 @@ class ToDoList():
         while True:
             print(emoji.emojize("""\n               :large_blue_diamond: Options:
                   1. Add a task
+                  2. Update a task
                   2. Edit a task
                   3. Delete a task
                   4. View all tasks (To Do List)
