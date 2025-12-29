@@ -1,14 +1,15 @@
 # I make this to do list for learning python
 
 import os
-import emoji
 import json
 import datetime
 
 class ToDoList():
-    def __init__(self, data_file: str = "tasks.json"):
+    def __init__(self, data_file: str = "tasks.json", data_file_2: str = "rewards.json"):
         self.data_file = data_file
+        self.data_file_2 = data_file_2
         self.tasks = self.load_tasks()
+        self.rewards = self.load_rewards()
     
     def load_tasks(self):
         if os.path.exists(self.data_file):
@@ -19,6 +20,23 @@ class ToDoList():
                 print(f"Warning: Could not load {self.data_file}. Starting with empty library.")
         return {}
     
+    def load_rewards(self):
+        if os.path.exists(self.data_file_2):
+            try:
+                with open(self.data_file_2, "r", encoding="utf-8") as file:
+                    return json.load(file)
+            except (json.JSONDecodeError, FileNotFoundError):
+                print(f"Warning: Could not load {self.data_file_2}. Starting with empty library.")
+        return {}
+
+    def save_rewards(self):
+        try:
+            with open(self.data_file_2, "w", encoding="utf-8") as file:
+                      json.dump(self.rewards, file, indent=2, ensure_ascii=False)
+            print(f"Data saved successfully to {self.data_file_2}")
+        except Exception as e:
+            print(f"Error saving data: {e}")
+
     def save_tasks(self):
         try:
             with open(self.data_file, "w", encoding="utf-8") as file:
@@ -28,9 +46,9 @@ class ToDoList():
             print(f"Error saving data: {e}")
 
     def add_task(self):
-        print(emoji.emojize("\n :balloon: Add New Task"))
+        print(("\n📍 Add New Task"))
 
-        print(emoji.emojize(":cyclone: Task's title:"))
+        print(("🧃 Task's title:"))
         title = input("> ").strip()
 
         if not title:
@@ -41,13 +59,13 @@ class ToDoList():
             print(f"Task '{title}' already exists. Use 'edit' to modify it...")
             return
         
-        print("Details: ")
+        print("📂 Details: ")
         details = input("> ").strip()
 
-        print(emoji.emojize(""":round_pushpin: Priority:
-        "1. High
+        print(("""🎯 Priority:
+         1. High
          2. Medium 
-         3.Low
+         3. Low
          Choose a number."""))
         priority_input = input("> ").strip()
         if priority_input == "1":
@@ -66,15 +84,49 @@ class ToDoList():
             except ValueError:
                 print("Skipped priority.")
         
-        print("Now determine your task's status.")
+        print("💥 How demanding does this task feel?")
+        print(("""         1. 🔵 Light Effort
+                            (Quick wins & low mental drag)
+                            - Takes minimal focus
+                            - Can be done even tired or between sessions
+                            - Examples: Tidy your desk, skim an article, reply to an email, order Xs online."""))
+        print(("""         2. 🟢 Medium Effort
+                            (Focused work that needs engagement)
+                            - Requires dedicated attention
+                            - Likely 30 minutes to 2 hours
+                            - You'll need to "get in the zone" """))
+        print(("""         3. 🟣 Heavy Effort
+                            - Deep, immersive, and fragile
+                            - Best scheduled for your personal peak focus times
+                            - Requires shielding from interruptions."""))
+
+        print("Choose a number.")
+        effort_input = input("> ")
+
+        if effort_input == "1":
+            try:
+                effort = "Light"
+            except ValueError:
+                print("Skipped Effort.")
+        if effort_input == "2":
+            try: 
+                effort = "Medium"
+            except ValueError:
+                print("Skipped Effort.")
+        if effort_input == "3":
+            try:
+                effort = "Heavy"
+            except ValueError:
+                print("Skipped Effort.")
+        
+        print(("🗃️  Now determine your task's status."))
         print("Choose from the menu:")
-        print("""\n
-              1. Just added
+        print("""           1. Just added
               2. On Progress
               3. Completed
-              4. Cancelled
-""")
-        status_input = (input("> ").strip())
+              4. Cancelled""")
+        
+        status_input = input("> ").strip()
 
         if status_input == "1":
             try:
@@ -98,31 +150,39 @@ class ToDoList():
                 print("Skipped status.")
 
         task_start_date = str(datetime.date.today())
-        print("And finally, what about the Due Date for your task?")
-        print("Use this format please to write the date. (29 Apr, 2075)")
-        task_due_date_string = input("> ")
-        format = "%d %b, %Y"
-        task_due_date = datetime.datetime.strptime(task_due_date_string, format).date()
 
-        task = {"title": title, "details": details, "priority": priority, "status": status, "start_date": task_start_date, "due_date": task_due_date}
+        print("🗓️  And finally, what about the Due Date for your task?")
+        print("Use this format please to write the date. (29 Apr, 2075)")
+        while True: 
+            task_due_date_string = input("> ")
+            checking_format = "%d %b, %Y"
+            try: 
+                parsed_date = datetime.datetime.strptime(task_due_date_string, checking_format)
+                task_due_date = str(parsed_date.date())
+                break
+            except ValueError as err:
+                print(f"Error: {err}")
+                print("Please enter a valid date in the format: 29 Apr, 2075")
+
+        task = {"title": title, "details": details, "priority": priority, "effort": effort, "status": status, "start_date": task_start_date, "due_date": task_due_date}
 
         self.tasks[title] = task
         self.save_tasks()
-        print(emoji.emojize(f"Task '{title}' added successfully. :check_mark_button:"))
+        self.sync_rewards_with_tasks()
+        print((f"Task '{title}' added successfully. ✔️"))
 
-
-    def edit_task(self):
+    def update_task_status(self):
         if not self.tasks:
             print("No tasks in your library yet.")
             return
         
-        print(emoji.emojize("\n :pencil: Edit Task"))
+        print("Update Task Status:")
         print("All your tasks until here:")
         only_tasks = list(map(str, self.tasks))
         for index, task in enumerate(only_tasks, start=1):
             print(f"{index}: {task}")
             
-        print("\nEnter the task's number you wanna edit:")
+        print("\nEnter the task's number you wanna update:")
         choice = input("> ").strip()
         
         if choice.isdigit():
@@ -134,71 +194,18 @@ class ToDoList():
                 print("Number is out of range.")
         else:
             print("Please enter a number.")
-
+        
         if title not in self.tasks:
             print(f"Task '{title}' not found.")
             return
         
         task = self.tasks[title]
-        print(f"\nEditing: {title}")
-        print(f"""      Task's information: 
-              Details: {task["details"]}
-              Priority: {task["priority"]}
-              Status: "{task["status"]}"
-              Start date: "{task["start_date"]}"
-              Due date: "{task["due_date"]}"
-              """)
+        print(f"\n🔷 Updating Status: {title}")
+        print(f"""      \nTask's Status information: 
+               "{task["status"]}" """)
         print("(While editing you can press Enter to keep the current value.)")
-
-        new_title = input(f"New Title: ").strip()
-        if new_title:
-            if new_title != title:
-                if new_title in self.tasks:
-                    print(f"Task '{new_title}' already exists.")
-                else:
-                    # Updating the key inner dict
-                    task["title"] = new_title
-                    # Now changing the main key of the dict
-                    # Starting with deleting the old key
-                    self.tasks.pop(title)
-                    # Now adding the new one
-                    self.tasks[new_title] = task
-
-                    # Chaning the 'new_title' to 'title' for the rest of the code
-                    title = new_title
-
-        new_details = input(f"New Details: ").strip()
-        if new_details:
-            task["details"] = new_details
-
-        print(f"New priority: ")
-        print(emoji.emojize(""":round_pushpin: Priority:
-        "1. High
-         2. Medium 
-         3. Low
-         Choose a number."""))
-        new_priority_input = input("> ").strip()
-        new_priority = None
-        if new_priority_input == "1":
-            try:
-                new_priority = "High"
-            except ValueError:
-                print("Skipped priority.")
-        if new_priority_input == "2":
-            try: 
-                new_priority = "Medium"
-            except ValueError:
-                print("Skipped priority.")
-        if new_priority_input == "3":
-            try:
-                new_priority = "Low"
-            except ValueError:
-                print("Skipped priority.")
-        if new_priority:
-            task["priority"] = new_priority
-
-        print(f"New status: ")
-        print(emoji.emojize("""Status:
+        print(f"Please choose from the menu: ")
+        print(("""Status:
               1. Just added
               2. On Progress
               3. Completed
@@ -229,46 +236,248 @@ class ToDoList():
         if new_status:
             task["status"] = new_status
 
-        print("Setting a new 'Start Date': ")
-        print("Please keep in mind to use this format to write the date. (11 Aug, 1950)")
-        new_task_start_date_string = input("> ")
-        format = "%d %b, %Y"
-        new_task_start_date = datetime.datetime.strptime(new_task_start_date_string, format).date()
-        if new_task_start_date:
-            task["start_date"] = new_task_start_date
+        self.save_tasks()
+        self.sync_rewards_with_tasks()
+        print((f"Task '{title}' updated successfuly. ✔️"))
+
+    def edit_task(self):
+        if not self.tasks:
+            print("No tasks in your library yet.")
+            return
         
-        print("Setting a new 'Due Date': ")
+        print(("\n ✏️ Edit Task"))
+        print("🔶 All your tasks until here:")
+        only_tasks = list(map(str, self.tasks))
+        for index, task in enumerate(only_tasks, start=1):
+            print(f"{index}: {task}")
+            
+        print("\n🔷 Enter the task's number you wanna edit:")
+        choice = input("> ").strip()
+        
+        if choice.isdigit():
+            task_number = int(choice)
+            if 1 <= task_number <= len(only_tasks):
+                title = only_tasks[task_number - 1]
+                print(f"Selected task: {title}")
+            else:
+                print("Number is out of range.")
+        else:
+            print("Please enter a number.")
+
+        if title not in self.tasks:
+            print(f"Task '{title}' not found.")
+            return
+        
+        task = self.tasks[title]
+        print(f"\n🔷 Editing: {title}")
+        print(f"""      Task's information: 
+              Details: {task["details"]}
+              Priority: {task["priority"]}
+              Effort: "{task["effort"]}"
+              Status: "{task["status"]}"
+              Start date: "{task["start_date"]}"
+              Due date: "{task["due_date"]}"
+              """)
+        print("(While editing you can press Enter to keep the current value.)")
+
+        new_title = input(f"New Title: ").strip()
+        if new_title:
+            if new_title != title:
+                if new_title in self.tasks:
+                    print(f"Task '{new_title}' already exists.")
+                else:
+                    # Updating the key inner dict
+                    task["title"] = new_title
+                    # Now changing the main key of the dict
+                    # Starting with deleting the old key
+                    self.tasks.pop(title)
+                    # Now adding the new one
+                    self.tasks[new_title] = task
+
+                    # Chaning the 'new_title' to 'title' for the rest of the code
+                    title = new_title
+
+        new_details = input(f"New Details: ").strip()
+        if new_details:
+            task["details"] = new_details
+
+        print(f"🔷 New priority: ")
+        print(("""1. High
+         2. Medium 
+         3. Low
+         Choose a number."""))
+        new_priority_input = input("> ").strip()
+        new_priority = None
+        if new_priority_input == "1":
+            try:
+                new_priority = "High"
+            except ValueError:
+                print("Skipped priority.")
+            if new_priority:
+                task["priority"] = new_priority
+        if new_priority_input == "2":
+            try: 
+                new_priority = "Medium"
+            except ValueError:
+                print("Skipped priority.")
+            if new_priority:
+                task["priority"] = new_priority
+        if new_priority_input == "3":
+            try:
+                new_priority = "Low"
+            except ValueError:
+                print("Skipped priority.")
+            if new_priority:
+                task["priority"] = new_priority
+
+        print("🔷 New Effort Level: ")
+        print(("""1. 🔵 Light Effort
+                            (Quick wins & low mental drag)
+                            - Takes minimal focus
+                            - Can be done even tired or between sessions
+                            - Examples: Tidy your desk, skim an article, reply to an email, etc."""))
+        print(("""2. 🟢 Medium Effort
+                            (Focused work that needs engagement)
+                            - Requires dedicated attention
+                            - You'll need to "get in the zone" 
+                            - Examples: Write a blog post section, Studying X, Outline a project's next phase"""))
+        print(("""3. 🟣 Heavy Effort
+                            (Deep work that demands planning & peak energy)
+                            - Deep, immersive, and fragile
+                            - Best scheduled for your personal peak focus times
+                            - Requires shielding from interruptions."""))
+
+        print("Choose a number.")
+        new_effort_input = input("> ")
+
+        if new_effort_input == "1":
+            try:
+                new_effort = "Light"
+            except ValueError:
+                print("Skipped priority.")
+            if new_effort:
+                task["effort"] = new_effort
+        if new_effort_input == "2":
+            try: 
+                new_effort = "Medium"
+            except ValueError:
+                print("Skipped priority.")
+            if new_effort:
+                task["effort"] = new_effort
+        if new_effort_input == "3":
+            try:
+                new_effort = "Heavy"
+            except ValueError:
+                print("Skipped priority.")
+            if new_effort:
+                task["effort"] = new_effort
+
+        print(f"🔷 New status: ")
+        print(("""1. Just added
+              2. On Progress
+              3. Completed
+              4. Cancelled"""))
+        
+        new_status_input = (input("> ").strip())
+
+        if new_status_input == "1":
+            try:
+                new_status = "Just added"
+            except ValueError:
+                print("Skipped status.")
+            if new_status:
+                task["status"] = new_status
+        if new_status_input == "2":
+            try:
+                new_status = "On Progress"
+            except ValueError:
+                print("Skipped status.")
+            if new_status:
+                task["status"] = new_status
+        if new_status_input == "3":
+            try:
+                new_status = "Completed"
+            except ValueError:
+                print("Skipped status.")
+            if new_status:
+                task["status"] = new_status
+        if new_status_input == "4":
+            try:
+                new_status = "Cancelled"
+            except ValueError:
+                print("Skipped status.")
+            if new_status:
+                task["status"] = new_status
+
+        print("🔷 Setting a new 'Start Date': ")
+        print("Please keep in mind to use this format to write the date. (11 Aug, 1950)")
+        new_task_start_date_string = ""
+        if new_task_start_date_string:
+            new_task_start_date_string = input("> ")
+            checking_format = "%d %b, %Y"
+            try:
+                parsed_date = datetime.datetime.strptime(new_task_start_date_string, checking_format)
+                new_task_start_date = str(parsed_date.date())
+            except ValueError:
+                print("Skipped Start Date")
+                new_task_start_date_string = ""
+            if new_task_start_date:
+                task["start_date"] = new_task_start_date
+        
+        print("🔷 Setting a new 'Due Date': ")
         print("Please keep in mind to use this format to write the date. (23 Jul, 2001)")
-        new_task_due_date_string = input("> ")
-        format = "%d %b, %Y"
-        new_task_due_date = datetime.datetime.strptime(new_task_due_date_string, format).date()
-        if new_task_start_date:
-            task["due_date"] = new_task_due_date
+        new_task_due_date_string = ""
+        if new_task_due_date_string:
+            new_task_due_date_string = input("> ")
+            checking_format = "%d %b, %Y"
+            try:
+                parsed_date = datetime.datetime.strptime(new_task_due_date_string, checking_format)
+                new_task_due_date = str(parsed_date.date())
+            except ValueError:
+                print("Skipped Due Date")
+                new_task_due_date_string = ""
+            if new_task_due_date:
+                task["due_date"] = new_task_due_date
 
         self.save_tasks()
-        print(emoji.emojize(f"Task '{title}' updated successfuly. :check_mark_button:"))
+        self.sync_rewards_with_tasks()
+        print((f"Task '{title}' updated successfuly. ✔️"))
 
     def delete(self):
         if not self.tasks:
             print("No tasks in your library yet.")
             return
         
-        print(emoji.emojize("\n :cross_mark_button: Delete Task"))
-        print("All your tasks until here:")
-        tasks_to_show = self.tasks
-        only_tasks = list(map(str, tasks_to_show))
-        print(only_tasks)
-        print("Enter the task's title you wanna delete:")
-        title = input("> ").strip()
-
+        print("🔶 All your tasks until here:")
+        only_tasks = list(map(str, self.tasks))
+        for index, task in enumerate(only_tasks, start=1):
+            print(f"{index}: {task}")
+            
+        print("\n🔷 Enter the task's number you wanna edit:")
+        choice = input("> ").strip()
+        
+        if choice.isdigit():
+            task_number = int(choice)
+            if 1 <= task_number <= len(only_tasks):
+                title = only_tasks[task_number - 1]
+                print(f"Selected task: {title}")
+            else:
+                print("Number is not in the range.")
+        else:
+            print("Please enter a number.")
 
         if title not in self.tasks:
             print(f"Task '{title}' not found.")
             return
         
-        self.tasks.pop(title)
-        print(emoji.emojize(f"Task '{title}' deleted successfully. :check_mark_button:"))
-        self.save_tasks()
+        confirm = input("Are you sure you want to delete this task? (yes/no)").strip().lower()
+        if confirm == "yes":
+            self.tasks.pop(title)
+            self.save_tasks()
+            self.sync_rewards_with_tasks()
+            print((f"Task '{title}' deleted successfully. ✔️"))
+        else: 
+            print("Deletion cancelled.")
                
     def show_all_tasks(self, filter_status: str = None):
         if not self.tasks:
@@ -281,35 +490,289 @@ class ToDoList():
             print(f"""  Task no.{i}: {task_name} 
               Details: "{task_data["details"]}"
               Priority: "{task_data["priority"]}"
+              Effort: "{task_data["effort"]}"
               Status: "{task_data["status"]}"
               Start date: "{task_data["start_date"]}"
               Due date: "{task_data["due_date"]}"
               """)
     
+    def reward(self):
+        while True:
+            print("""Options: 
+            1. Add Reward
+            2. Show all Rewards
+            3. Delete Reward
+            4. Claim Reward
+            5. Exit""")
+
+            choice = input("\nEnter your choice (1-5) ").strip()
+
+            if choice ==  "1":
+                self.add_reward()
+            elif choice == "2":
+                self.reward_show()
+            elif choice == "3":
+                self.reward_delete()
+            elif choice == "4":
+                self.claim_reward()
+            elif choice == "5":
+                print("Exiting Reward Section.")
+                break
+            else:
+                print("Invalid choice. Please try again.")
+
+    def add_reward(self):
+        print("Reward:")
+        print("""In this section, you can add some rewards for smashing your tasks.""")
+
+        print("Select how do you want to see your tasks:")
+        print("1. Just titles")
+        print("2. Full information")
+
+        try:
+            user_input = input("> ").strip()
+
+            if not self.tasks:
+                print("No tasks in your todolist yet.")
+                return
+
+            if user_input == "1":
+                tasks_list = list(self.tasks.keys())
+                for index, task_name in enumerate(tasks_list, start=1):
+                    task_status = self.tasks[task_name]["status"]
+                    status_symbol = "✓" if task_status == "Completed" else "✗"
+                    print(f"{index}: {task_name} [{status_symbol}]")
+               
+            elif user_input == "2":
+                for i, (task_name, task_data) in enumerate(self.tasks.items(), start=1):
+                    status_symbol = "✓" if task_data["status"] == "Completed" else "✗"
+                    print(f"""Task no.{i}: {task_name} [{status_symbol}]
+                    Details: "{task_data["details"]}"
+                    Priority: "{task_data["priority"]}"
+                    Effort: "{task_data["effort"]}"
+                    Status: "{task_data["status"]}"
+                    Start date: "{task_data["start_date"]}"
+                    Due date: "{task_data["due_date"]}" """)
+            
+            else:
+                print("Invalid option.")
+                return
+        except ValueError:
+            print("Please enter a valid number.")
+            return
+
+        print("""Treat yourself! \nSet a personal reward, then add the tasks you need to finish to earn it.""")
+        reward_name = input("Enter reward name: ").strip()
+        if reward_name in self.rewards:
+            print(f"Reward '{reward_name}' already exists. You can use 'edit' to modify it...")
+            return
+
+        print("\nYour available tasks:")
+        tasks_list = list(self.tasks.keys())
+        for index, task_name in enumerate(tasks_list, start=1):
+            task_status = self.tasks[task_name]["status"]
+            is_completed = task_status == "Completed"
+            status_symbol = "✓" if is_completed else "✗"
+            print(f"{index}: {task_name} [{status_symbol}]")
+        
+        print("\nEnter the numbers of tasks to associate with this reward (comma-separated, e.g., 1,3,5):")
+
+        try: 
+            task_numbers_input = input("> ").strip()
+
+            if not task_numbers_input:
+                print("No tasks selected.")
+                return
+            
+            task_numbers = [int(num.strip()) for num in task_numbers_input.split(",")]
+
+            related_tasks = {}
+            for num in task_numbers:
+                if 1 <= num <= len(tasks_list):
+                    task_name = tasks_list[num - 1]
+                    task_status = self.tasks[task_name]["status"]
+                    is_completed = task_status == "Completed"
+                    related_tasks[task_name] = is_completed
+                else:
+                    print(f"Task number {num} is invalid. Skipping...")
+            if not related_tasks:
+                print("No valid tasks selected.")
+                return
+
+            self.rewards[reward_name] = related_tasks
+
+            reward_status = self.calculate_reward_status(reward_name)
+
+            self.save_rewards()
+            print(f"\nRewaed '{reward_name}' added successfully!")
+            print(f"Associated tasks: {",".join(related_tasks.keys())}")
+            print(f"Current completion: {sum(related_tasks.values())}/{len(related_tasks)} tasks")
+
+            if reward_status:
+                print("This reward is now available!")
+        except ValueError:
+            print("Please enter valid numbers separated by commas.")
+
+    def calculate_reward_status(self, reward_name):
+        if reward_name not in self.rewards:
+            return False
+        related_tasks = self.rewards[reward_name]
+        return all(related_tasks.values())
+
+    def reward_show(self):
+        if not self.rewards:
+            print("No rewards have been created yet.")
+            return
+        
+        print("Your Rewards:\n")
+
+        for i, (reward_name, tasks_dict) in enumerate(self.rewards.items(), start=1):
+            completed_count = sum(tasks_dict.values())
+            total_tasks = len(tasks_dict)
+            reward_available = self.calculate_reward_status(reward_name)
+
+            status_symbol = "🎁 AVAILABLE" if reward_available else "🔒 LOCKED"
+            print(f"{i}. {reward_name} - {status_symbol}")
+            print(f"   Progress: {completed_count}/{total_tasks} tasks completed")
+            
+            for task_name, is_completed in tasks_dict.items():
+                status_symbol = "✅" if is_completed else "❌"
+                task_info = f"      {status_symbol} {task_name}"
+
+                if task_name in self.tasks:
+                    task_details = self.tasks[task_name]
+                    task_info += f" (Priority: {task_details["priority"]}, Due: {task_details["due_date"]})"
+                    print(task_info)
+            
+            if reward_available:
+                print(f"\n Congratulations!🎉 You can now claim '{reward_name}'!")
+            elif completed_count > 0:
+                remaining = total_tasks - completed_count
+                print(f"\n Keep going! 🦾 Only {remaining} task(s) left to earn. '{reward_name}'")
+            print()
+
+    def sync_rewards_with_tasks(self):
+        updated = False
+
+        for reward_name, tasks_dict in self.rewards.items():
+            for task_name in tasks_dict.keys():
+                if task_name in self.tasks:
+                    new_status = self.tasks[task_name]["status"] == "Completed"
+                    old_status = tasks_dict[task_name]
+
+                    if new_status != old_status:
+                        tasks_dict[task_name] = new_status
+                        updated = True
+                        print(f"Updated task '{task_name}' status in reward '{reward_name}' to {new_status}")
+        if updated:
+            self.save_rewards()
+            print("Rewards synchronized with tasks status.")   
+
+        return updated
+    
+    def claim_reward(self):
+        if not self.rewards:
+            print("No rewards have been created yet.")
+            return
+
+        available_rewards = []
+        for reward_name, tasks_dict in self.rewards.items():
+            if self.calculate_reward_status(reward_name):
+                available_rewards.append(reward_name)
+        
+        if not available_rewards:
+            print("No rewards are available to claim yet.")
+            print("Complete more tasks to earn rewards!")
+            return
+        
+        print("Available rewards to claim:")
+        for i, reward_name in enumerate(available_rewards, start=1):
+            print(f"{i}. {reward_name}")
+        
+        try:
+            choice = input("\nEnter the number of reward to claim (or 'cancel'): ").strip()
+            if choice.lower() == "cancel":
+                return
+
+            reward_num = int(choice)
+            if 1 <= reward_num <= len(available_rewards):
+                reward_name = available_rewards[reward_num - 1]
+
+                confirm = input(f"Are you sure you want to claim '{reward_name}'? (yes/no)").strip().lower()
+                if confirm == 'yes':
+                    if 'claimed' not in self.rewards[reward_name]:
+                        self.rewards[reward_name] = {'tasks': self.rewards[reward_name], 'claimed': True}
+                
+                    self.save_rewards()
+                    print(f"🎊 Congratulations! You've successfully claimed: {reward_name}!")
+                    print("Enjoy your reward! 🎉")
+                else:
+                    print("Claim cancelled.")
+            else:
+                print("Invalid number.")
+        except ValueError:
+            print("Please enter a valid number.")
+
+    def reward_delete(self):
+        if not self.rewards:
+            print("No rewards in your library yet.")
+            return
+        
+        print("\n🔶 All your tasks until here:")
+        only_rewards = list(map(str, self.rewards))
+        for index, reward in enumerate(only_rewards, start=1):
+            print(f"{index}: {reward}")
+            
+        print("\n🔷 Enter the task's number you wanna edit:")
+        choice = input("> ").strip()
+        
+        if choice.isdigit():
+            reward_number = int(choice)
+            if 1 <= reward_number <= len(only_rewards):
+                title = only_rewards[reward_number - 1]
+                print(f"Selected reward: {title}")
+            else:
+                print("Number is not in the range.")
+        else:
+            print("Please enter a number.")
+
+        if title not in self.rewards:
+            print(f"Task '{title}' not found.")
+            return
+        
+        self.rewards.pop(title)
+        self.save_rewards()
+        print((f"Reward '{title}' deleted successfully. ☑️"))
+
     def main(self):
         """main loop"""
-        print(emoji.emojize(":diamond_with_a_dot: Task Management System"))
+        print(("🗒️  Task Management System"))
 
         while True:
-            print(emoji.emojize("""\n               :large_blue_diamond: Options:
-                  1. Add a task
+            print(("""\n               ✏️  Options:
+                  1. Add a task 🫟
                   2. Update a task
-                  2. Edit a task
-                  3. Delete a task
-                  4. View all tasks (To Do List)
-                  5. Quit"""))
-            choice = input("\nEnter your choice (1-5) ").strip()
+                  3. Edit a task
+                  4. Delete a task
+                  5. View all tasks (To Do List) 📔
+                  6. Rewards ✨
+                  7. Quit"""))
+            choice = input("\nEnter your choice (1-7) ").strip()
 
             if choice ==  "1":
                 self.add_task()
             elif choice == "2":
-                self.edit_task()
+                self.update_task_status()
             elif choice == "3":
-                self.delete()
+                self.edit_task()
             elif choice == "4":
-                self.show_all_tasks()
+                self.delete()
             elif choice == "5":
-                print(emoji.emojize("Fighting! :fire:"))
+                self.show_all_tasks()
+            elif choice == "6":
+                self.reward()
+            elif choice == "7":
+                print(("Fighting! 🔥"))
                 break
             else:
                 print("Invalid choice. Please try again.")
