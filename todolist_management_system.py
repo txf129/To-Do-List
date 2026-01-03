@@ -1,51 +1,58 @@
-# I make this to do list for learning python
-
 import os
 import json
 import datetime
 
-class ToDoList():
-    def __init__(self, data_file: str = "tasks.json", data_file_2: str = "rewards.json"):
-        self.data_file = data_file
-        self.data_file_2 = data_file_2
-        self.tasks = self.load_tasks()
-        self.rewards = self.load_rewards()
-    
-    def load_tasks(self):
-        if os.path.exists(self.data_file):
-            try:
-                with open(self.data_file, "r", encoding="utf-8") as file:
-                    return json.load(file)
-            except (json.JSONDecodeError, FileNotFoundError):
-                print(f"Warning: Could not load {self.data_file}. Starting with empty library.")
-        return {}
-    
-    def load_rewards(self):
-        if os.path.exists(self.data_file_2):
-            try:
-                with open(self.data_file_2, "r", encoding="utf-8") as file:
-                    return json.load(file)
-            except (json.JSONDecodeError, FileNotFoundError):
-                print(f"Warning: Could not load {self.data_file_2}. Starting with empty library.")
-        return {}
+class Data_Context:
+    def __init__(self):
+        self.data_file = "tasks.json"
+        self.data_file_2 = "rewards.json"
+        self.tasks = {}
+        self.rewards = {}
 
-    def save_rewards(self):
+class Save_and_load:
+    def load_tasks(self, context):
+            if os.path.exists(context.data_file):
+                try:
+                    with open(context.data_file, "r", encoding="utf-8") as file:
+                        context.tasks = json.load(file)
+                except (json.JSONDecodeError, FileNotFoundError):
+                    print(f"Warning: Could not load {context.data_file}. Starting with empty library.")
+                    context.tasks = {}
+            else:
+                context.tasks = {}
+
+    def load_rewards(self, context):
+        if os.path.exists(context.data_file_2):
+            try:
+                with open(context.data_file_2, "r", encoding="utf-8") as file:
+                    context.rewards = json.load(file)
+            except (json.JSONDecodeError, FileNotFoundError):
+                print(f"Warning: Could not load {context.data_file_2}. Starting with empty library.")
+                context.rewards = {}
+        else:
+            context.rewards = {}
+
+    def save_tasks(self, context):
         try:
-            with open(self.data_file_2, "w", encoding="utf-8") as file:
-                      json.dump(self.rewards, file, indent=2, ensure_ascii=False)
-            print(f"Data saved successfully to {self.data_file_2}")
+            with open(context.data_file, "w", encoding="utf-8") as file:
+                json.dump(context.tasks, file, indent=2, ensure_ascii=False)
+            print(f"Data saved successfully to {context.data_file}")
         except Exception as e:
             print(f"Error saving data: {e}")
 
-    def save_tasks(self):
+    def save_rewards(self, context):
         try:
-            with open(self.data_file, "w", encoding="utf-8") as file:
-                      json.dump(self.tasks, file, indent=2, ensure_ascii=False)
-            print(f"Data saved successfully to {self.data_file}")
+            with open(context.data_file_2, "w", encoding="utf-8") as file:
+                json.dump(context.rewards, file, indent=2, ensure_ascii=False)
+            print(f"Data saved successfully to {context.data_file_2}")
         except Exception as e:
             print(f"Error saving data: {e}")
 
-    def add_task(self):
+class Actions_Task:
+    def __init__(self, save_and_load):
+        self.save_and_load = save_and_load
+
+    def add_task(self, context):
         print(("\n📍 Add New Task"))
 
         print(("🧃 Task's title:"))
@@ -54,19 +61,19 @@ class ToDoList():
         if not title:
             print("Title cannot be empty.")
             return
-        
-        if title in self.tasks:
+
+        if title in context.tasks:
             print(f"Task '{title}' already exists. Use 'edit' to modify it...")
             return
-        
+
         print("📂 Details: ")
         details = input("> ").strip()
 
         print(("""🎯 Priority:
-         1. High
-         2. Medium 
-         3. Low
-         Choose a number."""))
+            1. High
+            2. Medium 
+            3. Low"""))
+        print("Choose a number.")
         priority_input = input("> ").strip()
         if priority_input == "1":
             try:
@@ -83,7 +90,7 @@ class ToDoList():
                 priority = "Low"
             except ValueError:
                 print("Skipped priority.")
-        
+
         print("💥 How demanding does this task feel?")
         print(("""         1. 🔵 Light Effort
                             (Quick wins & low mental drag)
@@ -118,14 +125,15 @@ class ToDoList():
                 effort = "Heavy"
             except ValueError:
                 print("Skipped Effort.")
-        
+
         print(("🗃️  Now determine your task's status."))
         print("Choose from the menu:")
-        print("""           1. Just added
-              2. On Progress
-              3. Completed
-              4. Cancelled""")
-        
+        print("""
+                1. Just added
+                2. On Progress
+                3. Completed
+                4. Cancelled""")
+
         status_input = input("> ").strip()
 
         if status_input == "1":
@@ -160,25 +168,24 @@ class ToDoList():
                 parsed_date = datetime.datetime.strptime(task_due_date_string, checking_format)
                 task_due_date = str(parsed_date.date())
                 break
-            except ValueError as err:
-                print(f"Error: {err}")
+            except ValueError:
                 print("Please enter a valid date in the format: 29 Apr, 2075")
 
         task = {"title": title, "details": details, "priority": priority, "effort": effort, "status": status, "start_date": task_start_date, "due_date": task_due_date}
 
-        self.tasks[title] = task
-        self.save_tasks()
-        self.sync_rewards_with_tasks()
+        context.tasks[title] = task
+        self.save_and_load.save_tasks(context)
+        sync_rewards_with_tasks(context, self.save_and_load)
         print((f"Task '{title}' added successfully. ✔️"))
 
-    def update_task_status(self):
-        if not self.tasks:
+    def update_task_status(self, context):
+        if not context.tasks:
             print("No tasks in your library yet.")
             return
         
         print("Update Task Status:")
         print("All your tasks until here:")
-        only_tasks = list(map(str, self.tasks))
+        only_tasks = list(context.tasks.keys())
         for index, task in enumerate(only_tasks, start=1):
             print(f"{index}: {task}")
             
@@ -195,11 +202,11 @@ class ToDoList():
         else:
             print("Please enter a number.")
         
-        if title not in self.tasks:
+        if title not in context.tasks:
             print(f"Task '{title}' not found.")
             return
         
-        task = self.tasks[title]
+        task = context.tasks[title]
         print(f"\n🔷 Updating Status: {title}")
         print(f"""      \nTask's Status information: 
                "{task["status"]}" """)
@@ -236,18 +243,18 @@ class ToDoList():
         if new_status:
             task["status"] = new_status
 
-        self.save_tasks()
-        self.sync_rewards_with_tasks()
+        self.save_and_load.save_tasks(context)
+        sync_rewards_with_tasks(context, self.save_and_load)
         print((f"Task '{title}' updated successfuly. ✔️"))
 
-    def edit_task(self):
-        if not self.tasks:
+    def edit_task(self, context):
+        if not context.tasks:
             print("No tasks in your library yet.")
             return
         
         print(("\n ✏️ Edit Task"))
         print("🔶 All your tasks until here:")
-        only_tasks = list(map(str, self.tasks))
+        only_tasks = list(context.tasks.keys())
         for index, task in enumerate(only_tasks, start=1):
             print(f"{index}: {task}")
             
@@ -264,11 +271,11 @@ class ToDoList():
         else:
             print("Please enter a number.")
 
-        if title not in self.tasks:
+        if title not in context.tasks:
             print(f"Task '{title}' not found.")
             return
         
-        task = self.tasks[title]
+        task = context.tasks[title]
         print(f"\n🔷 Editing: {title}")
         print(f"""      Task's information: 
               Details: {task["details"]}
@@ -283,16 +290,16 @@ class ToDoList():
         new_title = input(f"New Title: ").strip()
         if new_title:
             if new_title != title:
-                if new_title in self.tasks:
+                if new_title in context.tasks:
                     print(f"Task '{new_title}' already exists.")
                 else:
                     # Updating the key inner dict
                     task["title"] = new_title
                     # Now changing the main key of the dict
                     # Starting with deleting the old key
-                    self.tasks.pop(title)
+                    context.tasks.pop(title)
                     # Now adding the new one
-                    self.tasks[new_title] = task
+                    context.tasks[new_title] = task
 
                     # Chaning the 'new_title' to 'title' for the rest of the code
                     title = new_title
@@ -439,17 +446,17 @@ class ToDoList():
             if new_task_due_date:
                 task["due_date"] = new_task_due_date
 
-        self.save_tasks()
-        self.sync_rewards_with_tasks()
+        context.save_tasks()
+        sync_rewards_with_tasks(context, self.save_and_load)
         print((f"Task '{title}' updated successfuly. ✔️"))
 
-    def delete(self):
-        if not self.tasks:
+    def delete(self, context):
+        if not context.tasks:
             print("No tasks in your library yet.")
             return
         
         print("🔶 All your tasks until here:")
-        only_tasks = list(map(str, self.tasks))
+        only_tasks = list(context.tasks.keys())
         for index, task in enumerate(only_tasks, start=1):
             print(f"{index}: {task}")
             
@@ -466,27 +473,27 @@ class ToDoList():
         else:
             print("Please enter a number.")
 
-        if title not in self.tasks:
+        if title not in context.tasks:
             print(f"Task '{title}' not found.")
             return
         
         confirm = input("Are you sure you want to delete this task? (yes/no)").strip().lower()
         if confirm == "yes":
-            self.tasks.pop(title)
-            self.save_tasks()
-            self.sync_rewards_with_tasks()
+            context.tasks.pop(title)
+            self.save_and_load.save_tasks(context)
+            sync_rewards_with_tasks(context, self.save_and_load)
             print((f"Task '{title}' deleted successfully. ✔️"))
         else: 
             print("Deletion cancelled.")
                
-    def show_all_tasks(self, filter_status: str = None):
-        if not self.tasks:
+    def show_all_tasks(self, context, filter_status: str = None):
+        if not context.tasks:
             print("No tasks in your todolist yet.")
             return
         
-        tasks_to_show = self.tasks
+        tasks_to_show = context.tasks.items()
 
-        for i, (task_name, task_data) in enumerate(tasks_to_show.items(), start=1):
+        for i, (task_name, task_data) in enumerate(tasks_to_show, start=1):
             print(f"""  Task no.{i}: {task_name} 
               Details: "{task_data["details"]}"
               Priority: "{task_data["priority"]}"
@@ -495,8 +502,12 @@ class ToDoList():
               Start date: "{task_data["start_date"]}"
               Due date: "{task_data["due_date"]}"
               """)
-    
-    def reward(self):
+
+class Reward:
+    def __init__(self, save_and_load):
+        self.save_and_load = save_and_load
+
+    def reward(self, context):
         while True:
             print("""Options: 
             1. Add Reward
@@ -508,20 +519,20 @@ class ToDoList():
             choice = input("\nEnter your choice (1-5) ").strip()
 
             if choice ==  "1":
-                self.add_reward()
+                self.add_reward(context)
             elif choice == "2":
-                self.reward_show()
+                self.reward_show(context)
             elif choice == "3":
-                self.reward_delete()
+                self.reward_delete(context)
             elif choice == "4":
-                self.claim_reward()
+                self.claim_reward(context)
             elif choice == "5":
                 print("Exiting Reward Section.")
                 break
             else:
                 print("Invalid choice. Please try again.")
 
-    def add_reward(self):
+    def add_reward(self, context):
         print("Reward:")
         print("""In this section, you can add some rewards for smashing your tasks.""")
 
@@ -532,19 +543,19 @@ class ToDoList():
         try:
             user_input = input("> ").strip()
 
-            if not self.tasks:
+            if not context.tasks:
                 print("No tasks in your todolist yet.")
                 return
 
             if user_input == "1":
-                tasks_list = list(self.tasks.keys())
+                tasks_list = list(context.tasks.keys())
                 for index, task_name in enumerate(tasks_list, start=1):
-                    task_status = self.tasks[task_name]["status"]
+                    task_status = context.tasks[task_name]["status"]
                     status_symbol = "✓" if task_status == "Completed" else "✗"
                     print(f"{index}: {task_name} [{status_symbol}]")
                
             elif user_input == "2":
-                for i, (task_name, task_data) in enumerate(self.tasks.items(), start=1):
+                for i, (task_name, task_data) in enumerate(context.tasks.items(), start=1):
                     status_symbol = "✓" if task_data["status"] == "Completed" else "✗"
                     print(f"""Task no.{i}: {task_name} [{status_symbol}]
                     Details: "{task_data["details"]}"
@@ -563,14 +574,14 @@ class ToDoList():
 
         print("""Treat yourself! \nSet a personal reward, then add the tasks you need to finish to earn it.""")
         reward_name = input("Enter reward name: ").strip()
-        if reward_name in self.rewards:
+        if reward_name in context.rewards:
             print(f"Reward '{reward_name}' already exists. You can use 'edit' to modify it...")
             return
 
         print("\nYour available tasks:")
-        tasks_list = list(self.tasks.keys())
+        tasks_list = list(context.tasks.keys())
         for index, task_name in enumerate(tasks_list, start=1):
-            task_status = self.tasks[task_name]["status"]
+            task_status = context.tasks[task_name]["status"]
             is_completed = task_status == "Completed"
             status_symbol = "✓" if is_completed else "✗"
             print(f"{index}: {task_name} [{status_symbol}]")
@@ -590,7 +601,7 @@ class ToDoList():
             for num in task_numbers:
                 if 1 <= num <= len(tasks_list):
                     task_name = tasks_list[num - 1]
-                    task_status = self.tasks[task_name]["status"]
+                    task_status = context.tasks[task_name]["status"]
                     is_completed = task_status == "Completed"
                     related_tasks[task_name] = is_completed
                 else:
@@ -599,12 +610,12 @@ class ToDoList():
                 print("No valid tasks selected.")
                 return
 
-            self.rewards[reward_name] = related_tasks
+            context.rewards[reward_name] = related_tasks
 
-            reward_status = self.calculate_reward_status(reward_name)
+            reward_status = self.calculate_reward_status(context, reward_name)
 
-            self.save_rewards()
-            print(f"\nRewaed '{reward_name}' added successfully!")
+            self.save_and_load.save_rewards(context)
+            print(f"\nReward '{reward_name}' added successfully!")
             print(f"Associated tasks: {",".join(related_tasks.keys())}")
             print(f"Current completion: {sum(related_tasks.values())}/{len(related_tasks)} tasks")
 
@@ -613,23 +624,23 @@ class ToDoList():
         except ValueError:
             print("Please enter valid numbers separated by commas.")
 
-    def calculate_reward_status(self, reward_name):
-        if reward_name not in self.rewards:
+    def calculate_reward_status(self, context, reward_name):
+        if reward_name not in context.rewards:
             return False
-        related_tasks = self.rewards[reward_name]
+        related_tasks = context.rewards[reward_name]
         return all(related_tasks.values())
 
-    def reward_show(self):
-        if not self.rewards:
+    def reward_show(self, context):
+        if not context.rewards:
             print("No rewards have been created yet.")
             return
         
         print("Your Rewards:\n")
 
-        for i, (reward_name, tasks_dict) in enumerate(self.rewards.items(), start=1):
+        for i, (reward_name, tasks_dict) in enumerate(context.rewards.items(), start=1):
             completed_count = sum(tasks_dict.values())
             total_tasks = len(tasks_dict)
-            reward_available = self.calculate_reward_status(reward_name)
+            reward_available = self.calculate_reward_status(context, reward_name)
 
             status_symbol = "🎁 AVAILABLE" if reward_available else "🔒 LOCKED"
             print(f"{i}. {reward_name} - {status_symbol}")
@@ -639,8 +650,8 @@ class ToDoList():
                 status_symbol = "✅" if is_completed else "❌"
                 task_info = f"      {status_symbol} {task_name}"
 
-                if task_name in self.tasks:
-                    task_details = self.tasks[task_name]
+                if task_name in context.tasks:
+                    task_details = context.tasks[task_name]
                     task_info += f" (Priority: {task_details["priority"]}, Due: {task_details["due_date"]})"
                     print(task_info)
             
@@ -650,34 +661,15 @@ class ToDoList():
                 remaining = total_tasks - completed_count
                 print(f"\n Keep going! 🦾 Only {remaining} task(s) left to earn. '{reward_name}'")
             print()
-
-    def sync_rewards_with_tasks(self):
-        updated = False
-
-        for reward_name, tasks_dict in self.rewards.items():
-            for task_name in tasks_dict.keys():
-                if task_name in self.tasks:
-                    new_status = self.tasks[task_name]["status"] == "Completed"
-                    old_status = tasks_dict[task_name]
-
-                    if new_status != old_status:
-                        tasks_dict[task_name] = new_status
-                        updated = True
-                        print(f"Updated task '{task_name}' status in reward '{reward_name}' to {new_status}")
-        if updated:
-            self.save_rewards()
-            print("Rewards synchronized with tasks status.")   
-
-        return updated
     
-    def claim_reward(self):
-        if not self.rewards:
+    def claim_reward(self, context):
+        if not context.rewards:
             print("No rewards have been created yet.")
             return
 
         available_rewards = []
-        for reward_name, tasks_dict in self.rewards.items():
-            if self.calculate_reward_status(reward_name):
+        for reward_name, tasks_dict in context.rewards.items():
+            if self.calculate_reward_status(context, reward_name):
                 available_rewards.append(reward_name)
         
         if not available_rewards:
@@ -700,10 +692,10 @@ class ToDoList():
 
                 confirm = input(f"Are you sure you want to claim '{reward_name}'? (yes/no)").strip().lower()
                 if confirm == 'yes':
-                    if 'claimed' not in self.rewards[reward_name]:
-                        self.rewards[reward_name] = {'tasks': self.rewards[reward_name], 'claimed': True}
-                
-                    self.save_rewards()
+                    if 'claimed' not in context.rewards[reward_name]:
+                        context.rewards[reward_name] = {'tasks': context.rewards[reward_name], 'claimed': True}
+    
+                    self.save_and_load.save_rewards(context)
                     print(f"🎊 Congratulations! You've successfully claimed: {reward_name}!")
                     print("Enjoy your reward! 🎉")
                 else:
@@ -713,39 +705,65 @@ class ToDoList():
         except ValueError:
             print("Please enter a valid number.")
 
-    def reward_delete(self):
-        if not self.rewards:
+    def reward_delete(self, context):
+        if not context.rewards:
             print("No rewards in your library yet.")
             return
         
-        print("\n🔶 All your tasks until here:")
-        only_rewards = list(map(str, self.rewards))
+        print("\n🔶 All your rewards until here:")
+        only_rewards = list(context.rewards.keys())
         for index, reward in enumerate(only_rewards, start=1):
             print(f"{index}: {reward}")
             
-        print("\n🔷 Enter the task's number you wanna edit:")
+        print("\n🔷 Enter the reward's number you wanna edit:")
         choice = input("> ").strip()
         
-        if choice.isdigit():
-            reward_number = int(choice)
-            if 1 <= reward_number <= len(only_rewards):
-                title = only_rewards[reward_number - 1]
-                print(f"Selected reward: {title}")
-            else:
-                print("Number is not in the range.")
-        else:
+        if not choice.isdigit():
             print("Please enter a number.")
-
-        if title not in self.rewards:
-            print(f"Task '{title}' not found.")
             return
         
-        self.rewards.pop(title)
-        self.save_rewards()
+        reward_number = int(choice)
+        if not (1 <= reward_number <= len(only_rewards)):
+            print("Number is not in the range.")
+            return
+        
+        title = only_rewards[reward_number - 1]
+        print(f"Selected reward: {title}")
+        
+        context.rewards.pop(title)
+        self.save_and_load.save_rewards(context)
         print((f"Reward '{title}' deleted successfully. ☑️"))
 
-    def main(self):
-        """main loop"""
+def sync_rewards_with_tasks(context, save_and_load):
+    updated = False
+
+    for reward_name, tasks_dict in context.rewards.items():
+        for task_name in tasks_dict.keys():
+            if task_name in context.tasks:
+                new_status = context.tasks[task_name]["status"] == "Completed"
+                old_status = tasks_dict[task_name]
+
+                if new_status != old_status:
+                    tasks_dict[task_name] = new_status
+                    updated = True
+                    print(f"Updated task '{task_name}' status in reward '{reward_name}' to {new_status}")
+    if updated:
+        save_and_load.save_rewards(context)
+        print("Rewards synchronized with tasks status.")   
+
+    return updated
+
+class Main:
+    def __init__(self):
+        self.context = Data_Context()
+        self.save_and_load = Save_and_load()
+        self.actions_for_tasks = Actions_Task(self.save_and_load)
+        self.reward_section = Reward(self.save_and_load)
+
+        self.save_and_load.load_rewards(self.context)
+        self.save_and_load.load_tasks(self.context)
+    
+    def performing_program(self):
         print(("🗒️  Task Management System"))
 
         while True:
@@ -760,17 +778,17 @@ class ToDoList():
             choice = input("\nEnter your choice (1-7) ").strip()
 
             if choice ==  "1":
-                self.add_task()
+                self.actions_for_tasks.add_task(self.context)
             elif choice == "2":
-                self.update_task_status()
+                self.actions_for_tasks.update_task_status(self.context)
             elif choice == "3":
-                self.edit_task()
+                self.actions_for_tasks.edit_task(self.context)
             elif choice == "4":
-                self.delete()
+                self.actions_for_tasks.delete(self.context)
             elif choice == "5":
-                self.show_all_tasks()
+                self.actions_for_tasks.show_all_tasks(self.context)
             elif choice == "6":
-                self.reward()
+                self.reward_section.reward(self.context)
             elif choice == "7":
                 print(("Fighting! 🔥"))
                 break
@@ -778,6 +796,5 @@ class ToDoList():
                 print("Invalid choice. Please try again.")
 
 if __name__ == "__main__":
-    todolist = ToDoList()
-    todolist.main()
-
+    app = Main()
+    app.performing_program()
